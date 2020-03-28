@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 TAU = 2 * np.pi
-SEED = 1
+SEED = 0
 N_OCTAVES = 10
 GAIN = .5
 L = 2.
@@ -13,6 +13,8 @@ L = 2.
 np.random.seed(SEED)
 
 def mix(a, b, u):
+    print(u.shape)
+    print(a.shape)
     return (1 - u)*a + u*b
 
 def cubic(x):
@@ -22,6 +24,15 @@ def quintic(x):
     return x*x*x*(10 + x*(-15 + 6*x))
 
 # noise functions
+
+def get_rand_fn(seed):
+    a = np.array([12.9898, 78.233])
+    def rand(p):
+        r = np.sin(np.dot(seed + p, a)) * 43758.5453123
+        return r - np.floor(r)
+    return rand
+
+noise_fn = get_rand_fn(SEED)
 
 # change this to get more controllable pseudorandom, and faster, and with no
 # memory
@@ -36,10 +47,14 @@ def value_noise(p, table, S, u):
     p_int = (p_int % S).astype(int)
     # print(p_int)
     # get table values
-    a = table[tuple(p_int)]
-    b = table[tuple(p_int + np.array([1, 0]))]
-    c = table[tuple(p_int + np.array([0, 1]))]
-    d = table[tuple(p_int + np.array([1, 1]))]
+    # a = table[tuple(p_int)]
+    # b = table[tuple(p_int + np.array([1, 0]))]
+    # c = table[tuple(p_int + np.array([0, 1]))]
+    # d = table[tuple(p_int + np.array([1, 1]))]
+    a = noise_fn(p_int)
+    b = noise_fn(p_int + np.array([1, 0]))
+    c = noise_fn(p_int + np.array([0, 1]))
+    d = noise_fn(p_int + np.array([1, 1]))
     # interpolate
     ux = u(p_frac[0])
     uy = u(p_frac[1])
@@ -70,6 +85,7 @@ xarr = np.arange(100) / 100
 
 inter = lambda x, u: mix(a, b, u(x))
 
+# plot interpolation function profiles
 # yarr = inter(xarr, cubic)
 # plt.plot(xarr, yarr)
 # plt.show()
@@ -77,21 +93,21 @@ inter = lambda x, u: mix(a, b, u(x))
 # plt.plot(xarr, yarr)
 # plt.show()
 
-im_size = 2
-grid_size = 500
+im_size = 1
+grid_size = 100
 N = im_size * grid_size
 A = np.arange(N)
 grid = np.stack((np.meshgrid(A, A)), -1) / grid_size
 t = get_random_table(im_size)
-# noisec = lambda p: value_noise(p, t, im_size, cubic)
-# noiseq = lambda p: value_noise(p, t, im_size, quintic)
-# noisec_im = np.apply_along_axis(noisec, -1, grid)
-# noiseq_im = np.apply_along_axis(noiseq, -1, grid)
-# fig, axs = plt.subplots(2, 1)
-# axs[0].imshow(noisec_im, interpolation='none')
-# axs[1].imshow(noiseq_im, interpolation='none')
-# # plt.matshow(noise_im)
-# plt.show()
+noisec = lambda p: value_noise(p, t, im_size, cubic)
+noiseq = lambda p: value_noise(p, t, im_size, quintic)
+noisec_im = np.apply_along_axis(noisec, -1, grid)
+noiseq_im = np.apply_along_axis(noiseq, -1, grid)
+fig, axs = plt.subplots(2, 1)
+axs[0].imshow(noisec_im, interpolation='none')
+axs[1].imshow(noiseq_im, interpolation='none')
+# plt.matshow(noise_im)
+plt.show()
 
 # fbm
 
